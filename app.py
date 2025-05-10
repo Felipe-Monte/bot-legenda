@@ -1,13 +1,18 @@
 import whisper
 import subprocess
 import torch
-import os
 import re
 from deep_translator import GoogleTranslator
 import gradio as gr
+import uuid
 
-# Define se vai usar GPU ou CPU
-device = "cuda" if torch.cuda.is_available() else "cpu"
+# Testa se a GPU está disponível
+if torch.cuda.is_available():
+    print(f"✅ CUDA está disponível! Usando GPU: {torch.cuda.get_device_name(0)}")
+    device = "cuda"
+else:
+    print("⚠️ CUDA não está disponível, usando CPU.")
+    device = "cpu"
 
 # Carrega modelo Whisper
 model = whisper.load_model("tiny").to(device)
@@ -30,17 +35,6 @@ def get_video_duration(path):
     )
     return float(result.stdout.decode().strip())
 
-# Monitora progresso do ffmpeg
-def monitor_ffmpeg_progress(pipe, total_duration):
-    pattern = re.compile(r'time=(\d+):(\d+):(\d+)\.(\d+)')
-    for line in pipe:
-        match = pattern.search(line)
-        if match:
-            h, m, s, ms = map(int, match.groups())
-            current_time = h * 3600 + m * 60 + s + ms / 100
-            percent = (current_time / total_duration) * 100
-            print(f"🎞️ Inserindo legenda: {percent:.1f}%\r", end="")
-
 # Função principal do app
 def processar_video(video_path):
     try:
@@ -51,49 +45,39 @@ def processar_video(video_path):
         total_duration = get_video_duration(video_path)
 
         # Transcrição
-        print("[1/3] 🎤 Transcrevendo áudio...")
+        print("[1/2] 🎤 Transcrevendo e traduzindo áudio...")
         result = model.transcribe(video_path, task="transcribe", verbose=False)
 
-        with open("saida.srt", "w", encoding="utf-8") as f:
-            for i, segment in enumerate(result["segments"], start=1):
-                start = format_timestamp(segment["start"])
-                end = format_timestamp(segment["end"])
-                text = segment["text"].strip()
-                f.write(f"{i}\n{start} --> {end}\n{text}\n\n")
-                percent = (segment["end"] / total_duration) * 100
-                print(f"📝 Transcrevendo: {percent:.1f}%\r", end="")
-
-        # Tradução
-        print("\n[2/3] 🌍 Traduzindo legendas...")
+        legenda_traduzida = f"saida_traduzida_{uuid.uuid4().hex[:8]}.srt"
         translator = GoogleTranslator(source='auto', target='pt')
-        with open("saida_traduzida.srt", "w", encoding="utf-8") as f:
+
+        with open(legenda_traduzida, "w", encoding="utf-8") as f:
             for i, segment in enumerate(result["segments"], start=1):
                 start = format_timestamp(segment["start"])
                 end = format_timestamp(segment["end"])
                 original_text = segment["text"].strip()
-                translated_text = translator.translate(original_text)
+                try:
+                    translated_text = translator.translate(original_text)
+                except Exception as e:
+                    translated_text = "[Erro na tradução]"
+                    print(f"⚠️ Erro ao traduzir: {e}")
                 f.write(f"{i}\n{start} --> {end}\n{translated_text}\n\n")
                 percent = (segment["end"] / total_duration) * 100
-                print(f"🌍 Traduzindo: {percent:.1f}%\r", end="")
+                print(f"📝 Progresso: {percent:.1f}%\r", end="")
 
         # Inserção das legendas
-        print("\n[3/3] 🎞️ Inserindo legendas no vídeo...")
-        output_video = "video_com_legenda.mp4"
+        print("\n[2/2] 🎞️ Inserindo legendas no vídeo...")
+        output_video = f"video_com_legenda_{uuid.uuid4().hex[:8]}.mp4"
 
-        process = subprocess.Popen(
+        subprocess.run(
             [
                 "ffmpeg", "-y", "-i", video_path,
-                "-vf", f"subtitles=saida_traduzida.srt",
+                "-vf", f"subtitles={legenda_traduzida}",
                 "-c:a", "copy", output_video
             ],
-            stderr=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
-            text=True,
-            universal_newlines=True
+            stderr=subprocess.DEVNULL
         )
-
-        monitor_ffmpeg_progress(process.stderr, total_duration)
-        process.wait()
 
         print(f"\n✅ Legenda inserida com sucesso! Arquivo final: {output_video}")
         return output_video
@@ -102,11 +86,11 @@ def processar_video(video_path):
         print(f"❌ Erro: {e}")
         return f"❌ Erro: {e}"
 
-# Interface Gradio
+# Interface Gradio com compartilhamento público
 gr.Interface(
     fn=processar_video,
     inputs=gr.File(label="Selecione o vídeo"),
     outputs=gr.Video(label="Vídeo com legenda"),
     title="Bot de Legendas com Tradução",
     description="Este app transcreve, traduz e insere legendas hardcoded no vídeo."
-).launch()
+).launch(share=True)
