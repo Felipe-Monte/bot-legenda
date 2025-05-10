@@ -16,4 +16,12 @@ Para criar um ambiente virtual e instalar as dependências do projeto:
 ```bash
 python -m venv myenv
 myenv\Scripts\activate
-pip install -r requirements.txt
+
+instalar whisper 
+pip install -U openai-whisper
+
+instalar tradutor
+pip install deep-translator
+
+instalar ffmpeg
+
