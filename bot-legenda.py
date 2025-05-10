@@ -5,20 +5,22 @@ from deep_translator import GoogleTranslator
 import os
 import re
 
+# Caminho do vídeo (absoluto)
+video_path = os.path.abspath("video.mp4")
+if not os.path.exists(video_path):
+    raise FileNotFoundError(f"Arquivo de vídeo não encontrado: {video_path}")
+
 # Testa se a GPU está disponível
 if torch.cuda.is_available():
     print(f"CUDA está disponível! Usando GPU: {torch.cuda.get_device_name(0)}")
 else:
     print("CUDA não está disponível, usando CPU.")
 
-# Caminho do vídeo
-video_path = "video.mp4"
-
 # Dispositivo apropriado
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Carrega modelo Whisper
-model = whisper.load_model("small").to(device)
+model = whisper.load_model("tiny").to(device)
 
 # Função para obter duração total do vídeo
 def get_video_duration(path):
@@ -28,7 +30,10 @@ def get_video_duration(path):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )
-    return float(result.stdout.decode().strip())
+    try:
+        return float(result.stdout.decode().strip())
+    except ValueError:
+        raise RuntimeError(f"Erro ao obter duração do vídeo: {result.stdout.decode().strip()}")
 
 total_duration = get_video_duration(video_path)
 
@@ -41,7 +46,7 @@ def format_timestamp(seconds):
     return f"{h:02}:{m:02}:{s:02},{ms:03}"
 
 # Transcrevendo o vídeo
-print("📝 Iniciando transcrição...")
+print("[Iniciando transcrição...]")
 result = model.transcribe(video_path, task="transcribe", verbose=False)
 
 # Salva arquivo de legenda original (saida.srt)

@@ -1,22 +1,43 @@
-# Ignorar ambiente virtual
+# Ambiente virtual
 myenv/
+env/
+venv/
+.venv/
 
-# Ignorar arquivos de cache do Python
+# Cache do Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
+*.pyd
 
-# Ignorar arquivos de logs
+# Logs
 *.log
 
-# Ignorar arquivos de configuração do IDE (se você estiver usando algum)
+# Configurações de IDEs
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
 
-# Ignorar arquivos do sistema operacional
+# Arquivos do sistema operacional
 .DS_Store
 Thumbs.db
+ehthumbs.db
+desktop.ini
 
-# Ignorar arquivos de backup
+# Arquivos temporários e de backup
 *.bak
 *.swp
+*.tmp
+
+# Arquivos de build/distribuição
+build/
+dist/
+*.egg-info/
+
+# Arquivos de legendas e vídeos gerados
+*.srt
+*.mp4
+
+# Diretório do Gradio (configurações temporárias)
+.gradio/
