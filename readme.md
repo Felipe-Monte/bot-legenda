@@ -1,31 +1,19 @@
 ## 3. Instalar tudo de uma vez no futuro
 
-Se você formatar o computador ou quiser rodar o projeto em outro lugar, siga estes passos:
+⚠️ Dependência externa - instale manualmente:
+ffmpeg - https://ffmpeg.org/download.html
 
 ### 📦 Instalar todas as dependências
 
 Com o Python instalado, rode:
-
-```bash
-pip install -r requirements.txt
-
-### ✅ Criar ambiente virtual e instalar dependências
-
 Para criar um ambiente virtual e instalar as dependências do projeto:
 
 ```bash
 python -m venv myenv
 myenv\Scripts\activate
 
-instalar whisper 
-pip install -U openai-whisper
+```bash
+pip install -r requirements.txt
 
-instalar tradutor
-pip install deep-translator
 
-instalar ffmpeg
-
-para NVIDIA
-pip uninstall torch -y
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
